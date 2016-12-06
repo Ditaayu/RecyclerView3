@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="editTextNama" type="id" />
+    <item name="editTextDeskripsi" type="id" />
+    <item name="editTextDetail" type="id" />
+    <item name="editTextLokasi" type="id" />
+    <item name="imageViewFoto" type="id" />
+    <item name="buttonSimpan" type="id" />
+</resources>
