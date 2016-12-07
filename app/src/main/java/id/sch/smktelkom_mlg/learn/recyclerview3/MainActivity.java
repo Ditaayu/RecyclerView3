@@ -8,9 +8,11 @@ import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
@@ -24,10 +26,14 @@ import id.sch.smktelkom_mlg.learn.recyclerview3.model.Hotel;
 public class MainActivity extends AppCompatActivity implements HotelAdapter.IHotelAdapter{
     public static final String HOTEL = "hotel";
     ArrayList<Hotel> mList = new ArrayList<>();
+    ArrayList<Hotel> mListAll = new ArrayList<>();
+    boolean isFiltered;
+    ArrayList<Integer> mListMapFilter = new ArrayList<>();
+    String mQuery;
     HotelAdapter mAdapter;
     private int REQUEST_CODE_ADD;
+    private int REQUEST_CODE_EDIT;
     int itemPos;
-    private Bundle REQUEST_CODE_EDIT;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,8 +91,61 @@ public class MainActivity extends AppCompatActivity implements HotelAdapter.IHot
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
+        MenuItemCompat.getActionView(searchItem);
+
+        searchView.setOnQueryTextListener(
+                new SearchView.OnQueryTextListener() {
+
+                    @Override
+                    public boolean onQueryTextSubmit(String query) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onQueryTextChange(String newText) {
+                        mQuery = newText.toLowerCase();
+                        doFilter(mQuery);
+                        return true;
+                    }
+                });
         return true;
     }
+
+                    private void doFilter(String query)
+                    {
+                        if (!isFiltered)
+                        {
+                            mListAll.clear();
+                            mListAll.addAll(mList);
+                            isFiltered = true;
+                        }
+
+                        mList.clear();
+                        if (query==null||query.isEmpty())
+                        {
+                            mList.addAll(mListAll);
+                            isFiltered = false;
+                        }
+                        else
+                        {
+                            mListMapFilter.clear();
+                            for (int i = 0; i < mListAll.size(); i++)
+                            {
+                                Hotel hotel = mListAll.get(i);
+                                if (hotel.judul.toLowerCase().contains(query) ||
+                                        hotel.deskripsi.toLowerCase().contains(query) ||
+                                        hotel.lokasi.toLowerCase().contains(query))
+                                {
+                                    mList.add(hotel);
+                                    mListMapFilter.add(i);
+                                }
+                            }
+                        }
+                        mAdapter.notifyDataSetChanged();
+                    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -125,14 +184,20 @@ public class MainActivity extends AppCompatActivity implements HotelAdapter.IHot
         itemPos = pos;
         final Hotel hotel = mList.get(pos);
         mList.remove(itemPos);
+        if (isFiltered) mListAll.remove(mListMapFilter.get(itemPos).intValue());
         mAdapter.notifyDataSetChanged();
-        Snackbar.make(findViewById(R.id.fab),hotel.judul+" Terhapus ",Snackbar.LENGTH_LONG).setAction("UNDO", new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mList.add(itemPos,hotel);
-                mAdapter.notifyDataSetChanged();
-            }
-        }).show();
+        Snackbar.make(findViewById(R.id.fab),hotel.judul+"Terhapus ",Snackbar.LENGTH_LONG)
+                .setAction("UNDO", new View.OnClickListener()
+                {
+                    @Override
+                    public void onClick(View view)
+                    {
+                        mList.add(itemPos,hotel);
+                        if (isFiltered) mListAll.add(mListMapFilter.get(itemPos), hotel);
+                        mAdapter.notifyDataSetChanged();
+                    }
+                })
+                .show();
 
     }
 
@@ -153,8 +218,17 @@ public class MainActivity extends AppCompatActivity implements HotelAdapter.IHot
    if(requestCode == REQUEST_CODE_ADD && resultCode == RESULT_OK)
    {
        Hotel hotel = (Hotel) data.getSerializableExtra(HOTEL);
+       mList.add(hotel);
+       if (isFiltered) mListAll.add(hotel);
+       doFilter(mQuery);
+   }
+        else if (requestCode == REQUEST_CODE_EDIT && resultCode == RESULT_OK)
+   {
+       Hotel hotel = (Hotel) data.getSerializableExtra(HOTEL);
        mList.remove(itemPos);
+       if (isFiltered) mListAll.remove(mListMapFilter.get(itemPos).intValue());
        mList.add(itemPos, hotel);
+       if (isFiltered) mListAll.add(mListMapFilter.get(itemPos), hotel);
        mAdapter.notifyDataSetChanged();
    }
     }
